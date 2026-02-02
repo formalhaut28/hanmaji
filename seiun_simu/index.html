@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>星雲シミュレーター by formalhaut with chatGPT</title>
+<style>
+body {
+  font-family: sans-serif;
+  background: #f5f5f5;
+  padding: 20px;
+}
+button {
+  margin: 5px 5px 5px 0;
+  padding: 10px 15px;
+  font-size: 14px;
+}
+#log {
+  background: #fff;
+  padding: 10px;
+  height: 260px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+.status {
+  margin-bottom: 12px;
+}
+.hidden {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<h2>ガチャ階層シミュレーター</h2>
+
+<div class="status">
+  <div>現在階：<span id="floor">0</span></div>
+  <div>今回使用コイン：<span id="coin">0</span></div>
+  <div>総使用コイン：<span id="totalCoin">0</span></div>
+  <div>獲得報酬：<span id="reward">0</span></div>
+  <div>保証ガチャ回数（現在階）：<span id="guaranteeCount">0</span></div>
+</div>
+
+<button id="normalBtn" onclick="drawNormal()">通常ガチャ</button>
+<button id="guaranteeBtn" onclick="drawGuarantee()">保証ガチャ</button>
+<button onclick="receiveReward()">報酬受取</button>
+
+<h3>ログ</h3>
+<div id="log"></div>
+
+<script>
+let floor = 0;
+let coinUsed = 0;
+let totalCoinUsed = 0;
+let totalReward = 0;
+let guaranteeCount = 0;
+let gameOver = false;
+
+const rewards = [3, 10, 32, 100, 220, 900, 2000];
+const guaranteeCost = [5, 5, 14, 40, 115, 220];
+
+function log(msg) {
+  const logDiv = document.getElementById("log");
+  logDiv.innerHTML += msg + "<br>";
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function updateUI() {
+  document.getElementById("floor").textContent = floor;
+  document.getElementById("coin").textContent = coinUsed;
+  document.getElementById("totalCoin").textContent = totalCoinUsed;
+  document.getElementById("reward").textContent = totalReward;
+  document.getElementById("guaranteeCount").textContent = guaranteeCount;
+
+  // 通常ガチャ表示制御
+  document.getElementById("normalBtn").classList.toggle("hidden", floor === 0 || gameOver);
+
+  // 保証ガチャ表示＆コスト表示
+  const gBtn = document.getElementById("guaranteeBtn");
+  if (gameOver || floor === 6) {
+    gBtn.classList.add("hidden");
+  } else {
+    gBtn.classList.remove("hidden");
+    const cost = floor <= 5 ? guaranteeCost[floor] : 0;
+    gBtn.textContent = `保証ガチャ（必要コイン：${cost}）`;
+  }
+}
+
+function receiveReward() {
+  if (!gameOver && floor > 0) {
+    totalReward += rewards[floor];
+    log(`報酬受取：${rewards[floor]}（${floor}階）`);
+  }
+
+  floor = 0;
+  coinUsed = 0;
+  guaranteeCount = 0;
+  gameOver = false;
+  log("0階にリセット");
+  updateUI();
+}
+
+function rollChange(isGuarantee) {
+  let r = Math.random() * 100;
+
+  if (floor === 0) {
+    if (r < 80) return 1;
+    if (r < 99.5) return 2;
+    return 3;
+  }
+
+  if (isGuarantee) {
+    if (r < 80) return 0;
+    if (r < 96) return 1;
+    if (r < 99.9) return 2;
+    return 3;
+  } else {
+    if (r < 10) return -2;
+    if (r < 80) return -1;
+    if (r < 96) return 1;
+    if (r < 99.9) return 2;
+    return 3;
+  }
+}
+
+function applyChange(change) {
+  let oldFloor = floor;
+  floor = Math.max(0, Math.min(6, floor + change));
+
+  log(`階変動：${oldFloor} → ${floor} (${change >= 0 ? "+" : ""}${change})`);
+
+  if (floor < oldFloor) {
+    totalReward += rewards[floor];
+    log(`階が下がったため終了。報酬獲得：${rewards[floor]}`);
+    gameOver = true;
+  }
+
+  if (floor === 6) {
+    totalReward += rewards[6];
+    log("6階到達！報酬獲得：2000");
+    gameOver = true;
+  }
+
+  if (oldFloor !== floor) guaranteeCount = 0;
+  updateUI();
+}
+
+function drawNormal() {
+  if (gameOver || floor === 0) return;
+  log("通常ガチャ");
+  applyChange(rollChange(false));
+}
+
+function drawGuarantee() {
+  if (gameOver) return;
+
+  if (floor <= 5) {
+    coinUsed += guaranteeCost[floor];
+    totalCoinUsed += guaranteeCost[floor];
+  }
+
+  guaranteeCount++;
+  log(`保証ガチャ（${guaranteeCount}回目）`);
+
+  if (guaranteeCount === 3) {
+    log("保証発動：必ず階上昇");
+    applyChange(1);
+    return;
+  }
+
+  applyChange(rollChange(true));
+}
+
+updateUI();
+log("ゲーム開始：0階");
+</script>
+
+</body>
+</html>
