@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会心込み攻撃力計算</title>
+<style>
+body {
+  font-family: sans-serif;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 10px;
+}
+h2 {
+  margin-top: 24px;
+}
+label {
+  display: block;
+  margin-top: 10px;
+}
+input {
+  width: 100%;
+  padding: 6px;
+  font-size: 16px;
+}
+.result {
+  margin-top: 16px;
+  padding: 10px;
+  background: #f5f5f5;
+}
+.formula {
+  font-family: monospace;
+  background: #eee;
+  padding: 6px;
+  margin-top: 6px;
+  word-break: break-all;
+}
+</style>
+</head>
+
+<body>
+
+<h1>会心込み攻撃力計算</h1>
+
+<label>
+攻撃力
+<input type="number" id="atk" value="5000" min="0">
+</label>
+
+<h2>会心率（%）</h2>
+<label>ジェム枠
+<input type="number" id="critRateGem" value="30" min="0" max="100">
+</label>
+<label>協会技術枠（小数OK）
+<input type="number" id="critRateGuild" value="0" min="0" max="100" step="0.1">
+</label>
+
+<h2>会心ダメージ（%）</h2>
+<label>ジェム枠
+<input type="number" id="critDmgGem" value="150" min="0">
+</label>
+<label>協会技術枠
+<input type="number" id="critDmgGuild" value="0" min="0">
+</label>
+
+<div class="result">
+<h2>計算結果</h2>
+
+<div>会心率合計：<span id="critRateTotal"></span>%</div>
+<div>会心ダメージ合計：<span id="critDmgTotal"></span>%</div>
+
+<div style="margin-top:10px;">
+会心込み攻撃力：<strong id="finalAtk"></strong>
+</div>
+
+<h3>本来の計算式</h3>
+<div class="formula">
+攻撃力 × (1 + 会心率 × 会心ダメージ)
+</div>
+
+<h3>入力値反映後の計算式</h3>
+<div class="formula" id="detailFormula"></div>
+</div>
+
+<script>
+const inputs = document.querySelectorAll("input");
+
+inputs.forEach(input => {
+  input.addEventListener("input", calculate);
+  input.addEventListener("focus", e => e.target.select());
+});
+
+function calculate() {
+  const atk = Number(atkInput.value);
+
+  const critRate =
+    10 +
+    Number(critRateGem.value) +
+    Number(critRateGuild.value);
+
+  const critRateClamped = Math.min(critRate, 100);
+
+  const critDmg =
+    25 +
+    Number(critDmgGem.value) +
+    Number(critDmgGuild.value);
+
+  const critRateDecimal = critRateClamped / 100;
+  const critDmgDecimal = critDmg / 100;
+
+  const finalAtkValue =
+    atk * (1 + critRateDecimal * critDmgDecimal);
+
+  critRateTotal.textContent = critRateClamped.toFixed(1);
+  critDmgTotal.textContent = critDmg.toFixed(0);
+  finalAtk.textContent = Math.round(finalAtkValue);
+
+  detailFormula.textContent =
+    `${atk} × (1 + ${critRateClamped}%(${critRateDecimal.toFixed(3)}) × `
+    + `${critDmg}%(${critDmgDecimal.toFixed(3)})) = `
+    + Math.round(finalAtkValue);
+}
+
+const atkInput = document.getElementById("atk");
+const critRateGem = document.getElementById("critRateGem");
+const critRateGuild = document.getElementById("critRateGuild");
+const critDmgGem = document.getElementById("critDmgGem");
+const critDmgGuild = document.getElementById("critDmgGuild");
+
+const critRateTotal = document.getElementById("critRateTotal");
+const critDmgTotal = document.getElementById("critDmgTotal");
+const finalAtk = document.getElementById("finalAtk");
+const detailFormula = document.getElementById("detailFormula");
+
+calculate();
+</script>
+
+</body>
+</html>
