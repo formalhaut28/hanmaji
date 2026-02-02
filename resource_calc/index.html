@@ -1,185 +1,182 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>会心込み攻撃力計算</title>
-
-<style>
-body {
-  font-family: sans-serif;
-  max-width: 720px;
-  margin: 16px auto;
-  padding: 8px;
-}
-
-h1, h2 {
-  margin: 12px 0;
-}
-
-.row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.block {
-  border: 1px solid #ddd;
-  padding: 8px;
-  min-width: 200px;
-}
-
-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-}
-
-input {
-  width: 80px;
-  padding: 4px;
-  font-size: 14px;
-  text-align: right;
-}
-
-.result {
-  background: #f3f3f3;
-  padding: 10px;
-  margin-bottom: 16px;
-}
-
-.formula {
-  font-family: monospace;
-  background: #e9e9e9;
-  padding: 6px;
-  margin-top: 6px;
-  word-break: break-all;
-}
-.small {
-  color: #666;
-  font-size: 13px;
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>ハンターのマジック Lv計算ツール</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 32px;
+      background: #f6f7fb;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin-top: 32px;
+      font-size: 1.3rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+    .row {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    input[type="number"] {
+      width: 120px;
+      padding: 6px;
+      font-size: 1rem;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .range-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .result {
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: #f0f3ff;
+      padding: 12px;
+      border-radius: 8px;
+    }
+  </style>
 </head>
-
 <body>
+  <h1>ハンターのマジック<br>レベルアップ必要アイテム自動計算</h1>
 
-<h1>会心込み攻撃力計算</h1>
+  <!-- 装備Lv -->
+  <div class="card">
+    <h2>1. 装備Lv</h2>
 
-<!-- 計算結果（ページ上部） -->
-<div class="result">
-  <h2>計算結果</h2>
-  <div>攻撃力：<strong id="resAtk"></strong></div>
-  <div>会心率合計：<strong id="critRateTotal"></strong>%</div>
-  <div>会心ダメージ合計：<strong id="critDmgTotal"></strong>%</div>
-  <div style="margin-top:6px;">
-    会心込み攻撃力：<strong id="finalAtk"></strong>
+    <div class="row range-pair">
+      <div>
+        <label>現在の装備Lv</label>
+        <input type="number" id="equipMin" value="0" min="0" max="200" />
+        <input type="range" id="equipMinRange" min="0" max="200" value="0" />
+      </div>
+      <div>
+        <label>目標の装備Lv</label>
+        <input type="number" id="equipMax" value="10" min="0" max="200" />
+        <input type="range" id="equipMaxRange" min="0" max="200" value="10" />
+      </div>
+    </div>
+
+    <div class="result" id="equipResult"></div>
   </div>
 
-  <h3>計算式</h3>
-  <div class="formula">
-    攻撃力 × (1 + 会心率 × 会心ダメージ)
+  <!-- 見習いLv -->
+  <div class="card">
+    <h2>2. 見習いLv</h2>
+
+    <div class="row range-pair">
+      <div>
+        <label>現在の見習いLv</label>
+        <input type="number" id="apprenticeMin" value="0" min="0" max="200" />
+        <input type="range" id="apprenticeMinRange" min="0" max="200" value="0" />
+      </div>
+      <div>
+        <label>目標の見習いLv</label>
+        <input type="number" id="apprenticeMax" value="10" min="0" max="200" />
+        <input type="range" id="apprenticeMaxRange" min="0" max="200" value="10" />
+      </div>
+    </div>
+
+    <div class="result" id="apprenticeResult"></div>
   </div>
 
-  <h3>あなたの攻撃力</h3>
-  <div class="formula" id="detailFormula"></div>
-</div>
+  <script>
+    function sync(minInput, maxInput, minRange, maxRange, onUpdate) {
+      let min = Number(minInput.value);
+      let max = Number(maxInput.value);
 
-<!-- 入力欄 -->
-<div class="row">
+      if (min > max) [min, max] = [max, min];
 
-  <!-- 攻撃力 -->
-  <div class="block">
-    <h2>攻撃力</h2>
-    <label>
-      攻撃力
-      <input type="number" id="atk" value="5000" min="0" max="999999">
-    </label>
-  </div>
+      minInput.value = min;
+      maxInput.value = max;
+      minRange.value = min;
+      maxRange.value = max;
 
-  <!-- 会心率 -->
-  <div class="block">
-    <h2>会心率 <span class="small">(基礎10%)</span></h2>
-    <label>
-      ジェム
-      <input type="number" id="critRateGem" value="30" min="0" max="999999">
-    </label>
-    <label>
-      協会技術
-      <input type="number" id="critRateGuild" value="0" min="0" max="100" step="0.1">
-    </label>
-  </div>
+      onUpdate(min, max);
+    }
 
-  <!-- 会心ダメージ -->
-  <div class="block">
-    <h2>会心ダメ <span class="small">(基礎25%)</span></h2>
-    <label>
-      ジェム
-      <input type="number" id="critDmgGem" value="150" min="0" max="999999">
-    </label>
-    <label>
-      協会技術
-      <input type="number" id="critDmgGuild" value="0" min="0" max="999999">
-    </label>
-  </div>
+    /* -------- 装備Lv -------- */
+    const equipMin = document.getElementById('equipMin');
+    const equipMax = document.getElementById('equipMax');
+    const equipMinRange = document.getElementById('equipMinRange');
+    const equipMaxRange = document.getElementById('equipMaxRange');
+    const equipResult = document.getElementById('equipResult');
 
-</div>
+    function calcEquip(min, max) {
+      let totalRecipe = 0;
+      let totalGold = 0;
 
-<script>
-const inputs = document.querySelectorAll("input");
+      for (let n = min + 1; n <= max; n++) {
+        totalRecipe += n;
+        totalGold += Math.ceil(100 + 1.5 * n * n);
+      }
 
-inputs.forEach(input => {
-  input.addEventListener("input", calculate);
-  input.addEventListener("focus", e => e.target.select());
-});
+      const attack = Math.ceil(0.05 * max * (max + 30));
 
-function calculate() {
-  const atk = Number(atkInput.value);
+      equipResult.innerHTML = `
+        必要レシピ合計：${totalRecipe.toLocaleString()}<br>
+        必要ゴールド合計：${totalGold.toLocaleString()}<br>
+        目標Lv時 攻撃力：${attack.toLocaleString()}
+      `;
+    }
 
-  const critRate =
-    10 +
-    Number(critRateGem.value) +
-    Number(critRateGuild.value);
+    [equipMin, equipMax].forEach(el => el.addEventListener('input', () =>
+      sync(equipMin, equipMax, equipMinRange, equipMaxRange, calcEquip)
+    ));
+    [equipMinRange, equipMaxRange].forEach(el => el.addEventListener('input', () => {
+      if (el === equipMinRange) equipMin.value = el.value;
+      if (el === equipMaxRange) equipMax.value = el.value;
+      sync(equipMin, equipMax, equipMinRange, equipMaxRange, calcEquip);
+    }));
 
-  const critRateClamped = Math.min(critRate, 100);
+    /* -------- 見習いLv -------- */
+    const apprenticeMin = document.getElementById('apprenticeMin');
+    const apprenticeMax = document.getElementById('apprenticeMax');
+    const apprenticeMinRange = document.getElementById('apprenticeMinRange');
+    const apprenticeMaxRange = document.getElementById('apprenticeMaxRange');
+    const apprenticeResult = document.getElementById('apprenticeResult');
 
-  const critDmg =
-    25 +
-    Number(critDmgGem.value) +
-    Number(critDmgGuild.value);
+    function calcApprentice(min, max) {
+      let totalExp = 0;
 
-  const critRateDecimal = critRateClamped / 100;
-  const critDmgDecimal = critDmg / 100;
+      for (let n = min + 1; n <= max; n++) {
+        totalExp += 500 + 190 * (n - 1) + (n - 1) * (n - 2);
+      }
 
-  const finalAtkValue =
-    atk * (1 + critRateDecimal * critDmgDecimal);
+      apprenticeResult.innerHTML = `
+        必要見習いExp合計：${totalExp.toLocaleString()}
+      `;
+    }
 
-  resAtk.textContent = atk;
-  critRateTotal.textContent = critRateClamped.toFixed(1);
-  critDmgTotal.textContent = critDmg.toFixed(0);
-  finalAtk.textContent = Math.round(finalAtkValue);
+    [apprenticeMin, apprenticeMax].forEach(el => el.addEventListener('input', () =>
+      sync(apprenticeMin, apprenticeMax, apprenticeMinRange, apprenticeMaxRange, calcApprentice)
+    ));
+    [apprenticeMinRange, apprenticeMaxRange].forEach(el => el.addEventListener('input', () => {
+      if (el === apprenticeMinRange) apprenticeMin.value = el.value;
+      if (el === apprenticeMaxRange) apprenticeMax.value = el.value;
+      sync(apprenticeMin, apprenticeMax, apprenticeMinRange, apprenticeMaxRange, calcApprentice);
+    }));
 
-  detailFormula.textContent =
-    `${atk} × (1 + ${critRateClamped}%(${critRateDecimal.toFixed(3)}) × `
-    + `${critDmg}%(${critDmgDecimal.toFixed(3)})) = `
-    + Math.round(finalAtkValue);
-}
-
-const atkInput = document.getElementById("atk");
-const critRateGem = document.getElementById("critRateGem");
-const critRateGuild = document.getElementById("critRateGuild");
-const critDmgGem = document.getElementById("critDmgGem");
-const critDmgGuild = document.getElementById("critDmgGuild");
-
-const resAtk = document.getElementById("resAtk");
-const critRateTotal = document.getElementById("critRateTotal");
-const critDmgTotal = document.getElementById("critDmgTotal");
-const finalAtk = document.getElementById("finalAtk");
-const detailFormula = document.getElementById("detailFormula");
-
-calculate();
-</script>
-
+    /* 初期計算 */
+    sync(equipMin, equipMax, equipMinRange, equipMaxRange, calcEquip);
+    sync(apprenticeMin, apprenticeMax, apprenticeMinRange, apprenticeMaxRange, calcApprentice);
+  </script>
 </body>
 </html>
