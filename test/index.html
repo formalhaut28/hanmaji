@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>デバッグビュー</title>
+
+<style>
+body { font-family:sans-serif; padding:20px; }
+.debug { background:#f5f5f5; padding:10px; white-space:pre-wrap; }
+.ok { color:green; }
+.ng { color:red; }
+a { word-break:break-all; }
+</style>
+</head>
+
+<body>
+
+<h2>デバッグ情報</h2>
+<div class="debug" id="debugLog">開始前...</div>
+
+<script>
+const url = "https://docs.google.com/spreadsheets/d/1l2d_-DbW4a8Ue5aE9O5dkcnalX5IN3XygZm_f-i2ve8/export?format=csv&gid=0";
+
+function log(msg){
+  console.log(msg);
+  document.getElementById("debugLog").innerHTML += msg + "\n";
+}
+
+// ★まずURLを表示（fetch前）
+log("① アクセスURL:");
+log('<a href="' + url + '" target="_blank">' + url + '</a>\n');
+
+// ★環境チェック
+log("② 実行環境:");
+log("protocol: " + location.protocol);
+log("host: " + location.host + "\n");
+
+if(location.protocol === "file:"){
+  log("❌ file:// で開いています → fetchはブロックされる可能性が高い\n");
+}
+
+// ★fetch実行
+log("③ fetch開始...");
+
+fetch(url)
+.then(res=>{
+  log("④ fetch status: " + res.status);
+  return res.text();
+})
+.then(text=>{
+  log("⑤ 成功: 文字数 " + text.length);
+})
+.catch(err=>{
+  log("❌ エラー: " + err.message + "\n");
+
+  log("▼考えられる原因▼");
+
+  log("1) シートが公開されていない");
+  log("2) URLが間違っている");
+  log("3) file:// で開いている（最有力）");
+  log("4) ブラウザのCORS制限\n");
+
+  log("▼確認してほしいこと▼");
+  log("・上のURLをクリックして開けるか");
+  log("・URLが https で始まっているか");
+  log("・Live Server 等で開いているか");
+});
+</script>
+
+</body>
+</html>
